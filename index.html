@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HLZH注入控制台 v1.0</title>
+    <style>
+        :root {
+            --neon-green: #0ffc03;
+            --dark-bg: #0a0a0a;
+            --darker-bg: #050505;
+            --border-glow: 0 0 10px var(--neon-green);
+        }
+        
+        body {
+            background-color: var(--darker-bg);
+            color: var(--neon-green);
+            font-family: 'Consolas', 'Monaco', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .console-container {
+            width: 600px;
+            max-width: 90%;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            padding: 25px;
+            background-color: var(--dark-bg);
+            box-shadow: 0 0 25px rgba(0, 255, 0, 0.1);
+            position: relative;
+            margin-top: 30px;
+        }
+        
+        .console-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+        
+        .console-title {
+            font-size: 2.2rem;
+            font-weight: bold;
+            text-shadow: var(--border-glow);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+        
+        .console-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        
+        /* 验证界面样式 */
+        .auth-panel {
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .auth-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 12px 15px;
+            font-size: 1rem;
+            width: 80%;
+            margin: 20px 0;
+            text-align: center;
+            box-shadow: var(--border-glow);
+        }
+        
+        .auth-btn {
+            background: linear-gradient(135deg, #0a5a0a, #0f0);
+            color: black;
+            border: none;
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 10px;
+        }
+        
+        .auth-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+        }
+        
+        .error-message {
+            color: #f00;
+            margin-top: 15px;
+            display: none;
+        }
+        
+        /* 主界面样式(默认隐藏) */
+        .main-interface {
+            display: none;
+        }
+        
+        .control-panel {
+            margin: 30px 0;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 12px 30px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 0 10px;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, #0a5a0a, #0f0);
+            color: black;
+        }
+        
+        .btn-stop {
+            background: linear-gradient(135deg, #5a0a0a, #f00);
+            color: white;
+            display: none;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 0, 0.4);
+        }
+        
+        .status-panel {
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px 20px;
+            margin-top: 20px;
+            background-color: rgba(0, 0, 0, 0.3);
+            position: relative;
+            display: none;
+            text-align: center;
+        }
+        
+        .status-panel::before {
+            content: 'SYSTEM STATUS';
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            font-size: 0.7rem;
+            background: var(--dark-bg);
+            padding: 0 5px;
+        }
+        
+        .status-message {
+            margin: 20px 0;
+            font-size: 1.1rem;
+        }
+        
+        .progress-sphere {
+            width: 120px;
+            height: 120px;
+            margin: 20px auto;
+            position: relative;
+        }
+        
+        .sphere-outer {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .sphere-inner {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            background: var(--darker-bg);
+            border-radius: 50%;
+            top: 10%;
+            left: 10%;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        
+        .sphere-progress {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: conic-gradient(
+                var(--neon-green) 0%,
+                transparent 80%
+            );
+            z-index: 1;
+            animation: rotateSphere 2s linear infinite;
+            display: none;
+        }
+        
+        .sphere-glow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(
+                circle at center,
+                rgba(15, 252, 3, 0.3) 0%,
+                transparent 70%
+            );
+            z-index: 0;
+            animation: pulseGlow 2s infinite alternate;
+        }
+        
+        @keyframes rotateSphere {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        @keyframes pulseGlow {
+            from { opacity: 0.3; }
+            to { opacity: 0.7; }
+        }
+        
+        .watermark {
+            position: absolute;
+            bottom: 10px;
+            right: 15px;
+            font-size: 0.8rem;
+            opacity: 0.5;
+        }
+        
+      
+        }
+        
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body>
+    <div class="scanline"></div>
+    
+    <div class="console-container">
+        <!-- 验证界面 -->
+        <div id="authPanel">
+            <div class="console-header">
+                <div class="console-title">HLZH 授权验证</div>
+                <div class="console-subtitle">请输入卡密以继续</div>
+            </div>
+            
+            <div class="auth-panel">
+                <input type="password" id="authInput" class="auth-input" placeholder="输入卡密">
+                <button id="authBtn" class="auth-btn">验证</button>
+                <div id="errorMsg" class="error-message">卡密错误，请重试</div>
+            </div>
+        </div>
+        
+        <!-- 主界面(默认隐藏) -->
+        <div id="mainInterface" class="main-interface">
+            <div class="console-header">
+                <div class="console-title">HLZH 注入控制台</div>
+                <div class="console-subtitle">高级系统注入工具 v1.0</div>
+            </div>
+            
+            <div class="control-panel">
+                <button id="startBtn" class="btn btn-start">开始注入</button>
+                <button id="stopBtn" class="btn btn-stop">停止运行</button>
+            </div>
+            
+            <div id="statusPanel" class="status-panel">
+                <div id="statusMessage" class="status-message">等待启动...</div>
+                
+                <div class="progress-sphere">
+                    <div class="sphere-outer">
+                        <div id="sphereProgress" class="sphere-progress"></div>
+                        <div class="sphere-inner" id="sphereText">待机</div>
+                        <div class="sphere-glow"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="watermark">@HLZHNBNB666</div>
+        </div>
+    </div>
+
+    <script>
+        // 验证系统
+        document.getElementById('authBtn').addEventListener('click', function() {
+            const input = document.getElementById('authInput').value;
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if(input === '@HLZHNBNB666') {
+                // 验证通过，显示主界面
+                document.getElementById('authPanel').style.display = 'none';
+                document.getElementById('mainInterface').style.display = 'block';
+            } else {
+                // 验证失败
+                errorMsg.style.display = 'block';
+                document.getElementById('authInput').value = '';
+                setTimeout(() => {
+                    errorMsg.style.display = 'none';
+                }, 2000);
+            }
+        });
+        
+        // 支持按Enter键验证
+        document.getElementById('authInput').addEventListener('keypress', function(e) {
+            if(e.key === 'Enter') {
+                document.getElementById('authBtn').click();
+            }
+        });
+        
+        // 主界面功能
+        let isRunning = false;
+        
+        document.getElementById('startBtn').addEventListener('click', startInjection);
+        document.getElementById('stopBtn').addEventListener('click', stopInjection);
+        
+        function startInjection() {
+            if (isRunning) return;
+            
+            isRunning = true;
+            
+            // 显示状态面板
+            const statusPanel = document.getElementById('statusPanel');
+            statusPanel.style.display = 'block';
+            
+            // 更新状态消息
+            document.getElementById('statusMessage').textContent = '注入已启动，系统运行中...';
+            
+            // 更新按钮状态
+            document.getElementById('startBtn').style.display = 'none';
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            
+            // 启动进度球旋转
+            document.getElementById('sphereProgress').style.display = 'block';
+            document.getElementById('sphereText').textContent = '运行中';
+        }
+        
+        function stopInjection() {
+            if (!isRunning) return;
+            
+            isRunning = false;
+            
+            // 更新状态消息
+            document.getElementById('statusMessage').textContent = '注入已停止';
+            
+            // 停止进度球旋转
+            document.getElementById('sphereProgress').style.display = 'none';
+            document.getElementById('sphereText').textContent = '已停止';
+            
+            // 更新按钮状态
+            document.getElementById('startBtn').style.display = 'inline-block';
+            document.getElementById('stopBtn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>
